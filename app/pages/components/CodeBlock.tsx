@@ -1,15 +1,8 @@
 "use client";
 
-import React, { useEffect, useRef } from 'react';
-import Prism from 'prismjs';
-import 'prismjs/themes/prism-okaidia.css';
-import 'prismjs/components/prism-jsx'; 
-import 'prismjs/components/prism-typescript';
-import 'prismjs/components/prism-python';
-import 'prismjs/components/prism-css';
-import 'prismjs/components/prism-markup';
-import 'prismjs/components/index';
-
+import React, { useState } from "react";
+import { Prism as SyntaxHighlighter } from "react-syntax-highlighter";
+import { atomDark } from "react-syntax-highlighter/dist/esm/styles/prism";
 
 interface CodeBlockProps {
   language: string;
@@ -17,27 +10,79 @@ interface CodeBlockProps {
   description: string;
 }
 
-const CodeBlock: React.FC<CodeBlockProps> = ({ language, code, description }) => {
-  const codeRef = useRef<HTMLElement>(null);
+const CodeBlock: React.FC<CodeBlockProps> = ({
+  language,
+  code,
+  description,
+}) => {
+  const [copySuccess, setCopySuccess] = useState(false);
 
-  useEffect(() => {
-    if (codeRef.current) {
-      Prism.highlightElement(codeRef.current);
-    }
-  }, [code]);
+  const formatCode = (code: string): string => {
+    const lines = code.split("\n");
+    const nonEmptyLines = lines.filter((line) => line.trim() !== "");
+
+    if (nonEmptyLines.length === 0) return code;
+
+    const minLeadingSpaces = Math.min(
+      ...nonEmptyLines.map((line) => line.match(/^ */)?.[0].length ?? 0)
+    );
+
+    return lines.map((line) => line.slice(minLeadingSpaces)).join("\n");
+  };
+
+  const copyToClipboard = () => {
+    navigator.clipboard.writeText(code).then(() => {
+      setCopySuccess(true);
+      setTimeout(() => setCopySuccess(false), 3000);
+    });
+  };
 
   return (
-    <div className="w-1/3 my-4 rounded-lg border border-gray-700">
-      <div className="bg-gray-800 text-white px-3 py-1 text-sm font-semibold rounded-t-lg">
-        {language.toUpperCase()}
-      </div>
-      <pre className="bg-gray-900">
-        <code ref={codeRef} className={`language-${language}`}>
-          {code}
-        </code>
-      </pre>
-      <div className="bg-gray-800 text-white px-3 py-1 text-xs rounded-b-lg">
-        {description}
+    <div className="w-1/3">
+      <div className="overflow-hidden">
+        <div className="bg-gray-800 text-white px-3 py-1 text-sm font-semibold rounded-t-lg flex justify-between">
+          {language.toUpperCase()}
+
+          <div className="" onClick={copyToClipboard}>
+            {copySuccess ? (
+              <button>
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  width="22"
+                  height="22"
+                  fill="currentColor"
+                  viewBox="0 0 256 256"
+                >
+                  <path d="M173.66,98.34a8,8,0,0,1,0,11.32l-56,56a8,8,0,0,1-11.32,0l-24-24a8,8,0,0,1,11.32-11.32L112,148.69l50.34-50.35A8,8,0,0,1,173.66,98.34ZM232,128A104,104,0,1,1,128,24,104.11,104.11,0,0,1,232,128Zm-16,0a88,88,0,1,0-88,88A88.1,88.1,0,0,0,216,128Z"></path>
+                </svg>
+              </button>
+            ) : (
+              <button>
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  width="22"
+                  height="22"
+                  fill="currentColor"
+                  viewBox="0 0 256 256"
+                >
+                  <path d="M200,32H163.74a47.92,47.92,0,0,0-71.48,0H56A16,16,0,0,0,40,48V216a16,16,0,0,0,16,16H200a16,16,0,0,0,16-16V48A16,16,0,0,0,200,32Zm-72,0a32,32,0,0,1,32,32H96A32,32,0,0,1,128,32Zm72,184H56V48H82.75A47.93,47.93,0,0,0,80,64v8a8,8,0,0,0,8,8h80a8,8,0,0,0,8-8V64a47.93,47.93,0,0,0-2.75-16H200Z"></path>
+                </svg>
+              </button>
+            )}
+          </div>
+        </div>
+        <SyntaxHighlighter
+          language={language}
+          style={atomDark}
+          customStyle={{ borderRadius: "0", padding: "10px 20px", margin: "0" }}
+          wrapLines
+          showLineNumbers
+        >
+          {formatCode(code)}
+        </SyntaxHighlighter>
+        <div className="bg-gray-800 text-white px-3 py-1 text-xs rounded-b-lg">
+          {description}
+        </div>
       </div>
     </div>
   );
